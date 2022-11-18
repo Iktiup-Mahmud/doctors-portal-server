@@ -17,22 +17,22 @@ const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@clu
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 
 async function run() {
-    try{
+    try {
         const appoinmentOptionsCollection = client.db('doctorsportal').collection('appoinmentOptions');
         const bookingsCollection = client.db('doctorsportal').collection('bookings');
 
         // use aggregate to query multiple collection and then merge data
-        app.get('/appoinmentoptions', async(req, res) => {
+        app.get('/appoinmentoptions', async (req, res) => {
             const date = req.query.date;
             const query = {};
             const options = await appoinmentOptionsCollection.find(query).toArray();
 
             // get the all booking of the provided date
-            const bookingQuery = { appoinmentDate : date }
+            const bookingQuery = { appoinmentDate: date }
             const alreadyBooked = await bookingsCollection.find(bookingQuery).toArray()
 
             // remove the slots for every treatements
-            options.forEach( option => {
+            options.forEach(option => {
                 const optionBooked = alreadyBooked.filter(book => book.treatement === option.name)
                 const bookedSlots = optionBooked.map(book => book.slot)
 
@@ -40,7 +40,7 @@ async function run() {
                 const remainingSlots = option.slots.filter(slot => !bookedSlots.includes(slot))
 
                 // set options slot 
-                option.slots = remainingSlots; 
+                option.slots = remainingSlots;
                 // console.log(date, option.name, remainingSlots.length);
             })
 
@@ -56,22 +56,29 @@ async function run() {
         app.delete('/bookings/:id')
         */
 
+        app.get('/bookings', async (req, res) => {
+            const email = req.query.email;
+            const query = { email: email }
+            const bookings = await bookingsCollection.find(query).toArray()
+            res.send(bookings)
+        })
 
-        app.post('/bookings' , async (req, res) => {
+
+        app.post('/bookings', async (req, res) => {
             const booking = req.body;
             console.log(booking)
 
             const query = {
-                email : booking.email,
-                appoinmentDate : booking.appoinmentDate,
-                treatement : booking.treatement
+                email: booking.email,
+                appoinmentDate: booking.appoinmentDate,
+                treatement: booking.treatement
             }
 
             const alreadyBooked = await bookingsCollection.find(query).toArray()
 
-            if(alreadyBooked.length){
+            if (alreadyBooked.length) {
                 const message = `You already have a booking on ${booking.appoinmentDate}`
-                return res.send({acknowledge : false, message})
+                return res.send({ acknowledge: false, message })
             }
 
             const result = await bookingsCollection.insertOne(booking)
@@ -86,7 +93,7 @@ async function run() {
 
 
     }
-    finally{
+    finally {
 
     }
 }
